@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+// 引入农历转换工具
+import { Lunar } from 'lunar-javascript';
 
 export default function Home() {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
+  const [lunarDate, setLunarDate] = useState(''); // 新增农历状态
   const [searchQuery, setSearchQuery] = useState('');
   const [links, setLinks] = useState([]);
 
   // 初始化
   useEffect(() => {
-    // 1. 读取环境变量链接 (如果没有则用默认)
+    // 1. 读取环境变量链接
     const envLinks = process.env.NEXT_PUBLIC_NAV_LINKS;
     if (envLinks) {
       try {
@@ -20,31 +23,35 @@ export default function Home() {
       }
     } else {
       setLinks([
-        { name: '淘宝', url: 'https://www.taobao.com' },
-        { name: '京东', url: 'https://www.jd.com' },
-        { name: '知乎', url: 'https://www.zhihu.com' },
-        { name: 'Deepseek', url: 'https://chat.deepseek.com' },
-        { name: 'B站', url: 'https://www.bilibili.com' },
+        { name: '演示-淘宝', url: 'https://www.taobao.com' },
       ]);
     }
 
-    // 2. 时间更新
+    // 2. 时间更新逻辑
     const updateTime = () => {
       const now = new Date();
+      
       // 时间 HH:MM
       const timeString = now.toLocaleTimeString('en-GB', { 
         hour: '2-digit', 
         minute: '2-digit' 
       });
-      // 日期 MM/DD 星期X
+      
+      // 公历日期 MM/DD 星期X
       const dateString = now.toLocaleDateString('zh-CN', {
         month: '2-digit',
         day: '2-digit',
         weekday: 'long'
       }); 
+
+      // --- 农历计算部分 Start ---
+      const lunar = Lunar.fromDate(now);
+      const lunarString = `农历 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`;
+      // --- 农历计算部分 End ---
       
       setTime(timeString);
       setDate(dateString);
+      setLunarDate(lunarString);
     };
 
     updateTime();
@@ -52,7 +59,6 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  // 搜索处理
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -76,20 +82,21 @@ export default function Home() {
       {/* 遮罩层 */}
       <div className="absolute top-0 left-0 w-full h-full bg-black/10 z-10 pointer-events-none" />
 
-      {/* 主体内容 */}
-      <div className="relative z-20 flex flex-col items-center pt-20 h-full w-full px-4">
+      {/* 主体内容 (保留了 pt-32 的上移设置) */}
+      <div className="relative z-20 flex flex-col items-center pt-28 h-full w-full px-4">
         
-        {/* 时钟 */}
+        {/* 时钟区域 */}
         <div className="flex items-end gap-3 mb-8 drop-shadow-md select-none">
           <h1 className="text-7xl font-light tracking-wide">{time}</h1>
           <div className="flex flex-col text-sm font-medium opacity-90 pb-2 gap-1">
             <span>{date}</span>
-            <span className="text-xs opacity-70">农历 暂略</span>
+            {/* 这里现在显示真正的农历了 */}
+            <span className="text-xs opacity-70 tracking-wider">{lunarDate}</span>
           </div>
         </div>
 
         {/* 搜索框 */}
-        <form onSubmit={handleSearch} className="w-full max-w-xl mb-32 relative group">
+        <form onSubmit={handleSearch} className="w-full max-w-xl relative group">
           <div className="relative flex items-center bg-white/90 backdrop-blur-sm rounded-full h-12 px-2 shadow-lg transition-all duration-300 group-hover:bg-white">
             <div className="pl-4 pr-2 text-gray-500 text-sm font-bold select-none cursor-default">
               百度
