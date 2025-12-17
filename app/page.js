@@ -51,24 +51,14 @@ export default function Home() {
     // 2. 延迟加载视频
     const videoTimer = setTimeout(() => setStartLoadVideo(true), 800); 
 
-    // 3. 核心：动态计算链接数量 (左右留空 10cm 约等于 380px * 2 = 760px)
+    // 3. 核心：动态计算链接数量
     const calculateLayout = (allLinks) => {
       const width = window.innerWidth;
-      
-      // 预估留白：电脑端左右各 380px，手机端左右各 20px
+      // 电脑端左右各留白约380px，手机端左右各20px
       const marginTotal = width > 1024 ? 760 : 40; 
-      // 剩余可用宽度
       const availableWidth = width - marginTotal;
-      
-      // 单个链接平均宽度预估 (包含间距) -> 约 110px
       const itemWidth = 110; 
-      
-      // 一行能放几个？
       const perRow = Math.floor(availableWidth / itemWidth);
-      
-      // 最多允许 2 行 (保留 1 个位置给 ... 按钮)
-      // 如果计算出来每行能放 10 个，那限制就是 19 个 (第一行10 + 第二行9 + 按钮)
-      // 最小给 6 个保底
       let limit = Math.max(6, (perRow * 2) - 1);
 
       if (allLinks.length > limit) {
@@ -89,7 +79,6 @@ export default function Home() {
     setLinks(parsedLinks);
     calculateLayout(parsedLinks);
 
-    // 监听窗口调整
     const onResize = () => calculateLayout(parsedLinks);
     window.addEventListener('resize', onResize);
 
@@ -156,22 +145,12 @@ export default function Home() {
   return (
     <main className="relative w-full h-screen overflow-hidden text-white font-sans">
       
-      {/* 注入自定义滚动条样式 (针对 ... 菜单) */}
+      {/* 自定义滚动条样式 */}
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-color: rgba(255, 255, 255, 0.2);
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(255, 255, 255, 0.4);
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.4); }
       `}</style>
 
       {/* 静态图 & 视频 */}
@@ -192,7 +171,7 @@ export default function Home() {
         <svg height="28" width="28" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
       </a>
 
-      {/* 中间内容 (搜索 & 时钟) */}
+      {/* 中间内容 */}
       <div className="relative z-20 flex flex-col items-center pt-44 h-full w-full px-4">
         <div className="flex items-end gap-3 mb-8 drop-shadow-md select-none">
           <h1 className="text-7xl font-light tracking-wide">{time}</h1>
@@ -221,21 +200,13 @@ export default function Home() {
         </form>
       </div>
 
-      {/* 
-         底部导航区域 (核心修改) 
-         1. 容器定位：absolute bottom-[40px] (留出版权位置)。
-         2. 容器高度：h-28 (约112px，固定两行的高度，让 flex 从上往下排)。
-         3. 左右留白：style={{ maxWidth: 'calc(100% - 760px)' }} (仅在电脑端生效，强制 10cm 留白)。
-         4. 排列方式：flex content-start (内容靠上对齐，这样第二行会自然出现在下方)。
-      */}
+      {/* 底部导航区域 */}
       <div className="absolute bottom-[40px] w-full z-30 flex justify-center">
         <div className="absolute -bottom-10 left-0 w-full h-80 bg-gradient-to-t from-blue-300/20 to-transparent pointer-events-none" />
         
         <div 
           className="relative flex flex-wrap justify-center content-start gap-2 sm:gap-4 h-28 overflow-visible"
           style={{ 
-            // 动态宽度：100% 减去左右各 380px (约10cm)
-            // 在小屏幕 (max-width: 1024px) 下恢复全宽，不然没法看
             width: '100%',
             maxWidth: typeof window !== 'undefined' && window.innerWidth > 1024 ? 'calc(100% - 760px)' : '95%' 
           }}
@@ -251,15 +222,9 @@ export default function Home() {
             <div className="relative h-fit" ref={moreMenuRef}>
               <button onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)} className="text-sm sm:text-base font-bold text-white/90 tracking-wider w-10 h-9 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white hover:backdrop-blur-sm">•••</button>
 
-              {/* 透明毛玻璃菜单 (修正版) */}
+              {/* 透明毛玻璃菜单 - 已修复换行符问题 */}
               {isMoreMenuOpen && (
-                <div className="
-                  absolute bottom-12 left-1/2 -translate-x-1/2 w-40 
-                  bg-black/40 backdrop-blur-md border border-white/20
-                  rounded-2xl p-2 z-50 
-                  animate-in fade-in zoom-in-95 duration-200 
-                  max-h-60 overflow-y-auto custom-scrollbar
-                ">
+                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-40 bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
                    {hiddenLinks.map((link, idx) => (
                      <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-center text-white/90 font-medium rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white mb-1 last:mb-0">
                        {link.name}
