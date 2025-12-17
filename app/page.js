@@ -20,6 +20,7 @@ export default function Home() {
   const [startLoadVideo, setStartLoadVideo] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
 
+  // --- 导航栏收纳逻辑 ---
   const [visibleLinks, setVisibleLinks] = useState([]); 
   const [hiddenLinks, setHiddenLinks] = useState([]);   
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false); 
@@ -53,7 +54,6 @@ export default function Home() {
     // 3. 布局计算
     const calculateLayout = (allLinks) => {
       const width = window.innerWidth;
-      // 电脑端强制左右留白 380px (10cm)，手机端留 32px
       const marginTotal = width > 1024 ? 760 : 32; 
       const availableWidth = width - marginTotal;
       const itemWidth = 110; 
@@ -143,7 +143,7 @@ export default function Home() {
   return (
     <main className="relative w-full h-screen overflow-hidden text-white font-sans">
       
-      {/* 滚动条样式：半透明白色描边胶囊 */}
+      {/* 滚动条样式 */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -219,16 +219,15 @@ export default function Home() {
               <button onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)} className="text-sm sm:text-base font-bold text-white/90 tracking-wider w-10 h-9 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white hover:backdrop-blur-sm">•••</button>
 
               {/* 
-                 下拉菜单修改区：
-                 1. bottom-24: 这个数字越大，菜单越往上跑。如果你觉得还会重叠，可以改成 bottom-28 或 bottom-32。
-                 2. w-56: 宽度改大了，原来是 w-40。
-                 3. max-h-80: 高度限制改大了。
-                 4. 样式：去掉了 bg-black/40 (背景透明)，链接本身默认也是透明的，只有 hover 时显示胶囊。
+                 下拉菜单优化版：
+                 1. snap-y snap-mandatory: 开启滚动捕捉，停止时自动吸附到完整一行，防止半截字。
+                 2. py-2: 上下增加内边距，让边缘有呼吸空间，不切字。
+                 3. bottom-28: 再次上移 (比之前的 24 更高)，彻底防止重叠。
               */}
               {isMoreMenuOpen && (
-                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-56 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-80 overflow-y-auto custom-scrollbar">
+                <div className="absolute bottom-28 left-1/2 -translate-x-1/2 w-56 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-80 overflow-y-auto custom-scrollbar snap-y snap-mandatory py-2">
                    {hiddenLinks.map((link, idx) => (
-                     <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-center text-white/90 font-medium rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white">
+                     <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="snap-start block px-4 py-2 text-sm text-center text-white/90 font-medium rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white">
                        {link.name}
                      </a>
                    ))}
