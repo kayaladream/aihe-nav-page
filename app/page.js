@@ -31,16 +31,20 @@ export default function Home() {
   useEffect(() => {
     setYear(new Date().getFullYear());
 
-    // 1. 背景选择
+    // 1. 背景选择逻辑 (已简化：去掉了数量变量)
     const envBg = process.env.NEXT_PUBLIC_BACKGROUND_LIST;
     let bgList = ['cat']; 
+
     if (envBg) {
       if (envBg === 'all') {
+        // 如果是 all，直接生成 cat ~ cat29 的列表
+        // 不用管文件是否存在，交给后面的 onError 自动处理
         bgList = ['cat'];
         for (let i = 1; i < 30; i++) {
           bgList.push(`cat${i}`);
         }
       } else {
+        // 自定义列表模式 (如 "cat,cat2,cat5")
         bgList = envBg.split(',').map(s => s.trim()).filter(Boolean);
       }
     }
@@ -51,30 +55,23 @@ export default function Home() {
     // 2. 延迟加载视频
     const videoTimer = setTimeout(() => setStartLoadVideo(true), 800); 
 
-    // 3. 核心：智能布局算法 (带安全缓冲版)
+    // 3. 核心：智能布局算法
     const calculateLayout = (allLinks) => {
       if (!allLinks || allLinks.length === 0) return;
 
       const screenWidth = window.innerWidth;
       const isDesktop = screenWidth > 1024;
       const containerPadding = isDesktop ? 760 : 32;
-      
-      // ↓↓↓ 核心修改 ↓↓↓
-      // 引入 20px 的安全缓冲 (Safety Buffer)
-      // 这就像给车库倒车留余量，防止 JS 算得刚刚好，但 CSS 渲染多出 1px 导致换行。
-      const safetyBuffer = 20; 
-      const availableWidth = screenWidth - containerPadding - safetyBuffer;
+      const availableWidth = screenWidth - containerPadding + 5;
 
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       const fontStack = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-      // 字体参数与 CSS 保持一致 (font-extralight = 200)
       context.font = isDesktop ? `200 14px ${fontStack}` : `200 12px ${fontStack}`;
 
-      // 样式常量 (px-3 = 24px)
-      const itemPadding = 24; 
+      const itemPadding = 22; 
       const itemGap = isDesktop ? 16 : 8; 
-      const buttonWidth = 45; // 稍微调大一点按钮预留宽度
+      const buttonWidth = 40;
 
       let lines = [[]]; 
       let currentLineIndex = 0;
@@ -82,12 +79,9 @@ export default function Home() {
 
       for (let i = 0; i < allLinks.length; i++) {
         const link = allLinks[i];
-        // 测量宽度
         const textWidth = context.measureText(link.name).width;
-        // 向上取整
         const itemTotalWidth = Math.ceil(textWidth + itemPadding);
 
-        // 计算增加该链接后的宽度
         const widthToAdd = (lines[currentLineIndex].length === 0) ? itemTotalWidth : (itemGap + itemTotalWidth);
 
         if (currentLineWidth + widthToAdd <= availableWidth) {
@@ -101,22 +95,18 @@ export default function Home() {
         }
       }
 
-      // 溢出处理逻辑
       if (lines.length > 2) {
         let overflowLinks = [];
-        // 收集第3行及以后的
         for (let i = 2; i < lines.length; i++) {
           overflowLinks = overflowLinks.concat(lines[i]);
         }
 
-        // 修剪第2行
         let row2 = lines[1] || [];
         let row2Width = 0;
         row2.forEach((item, idx) => {
           row2Width += item._width + (idx > 0 ? itemGap : 0);
         });
 
-        // 只要 (当前宽 + 间距 + 按钮宽 > 可用宽度)，就一直移除末尾元素
         while (row2.length > 0 && (row2Width + itemGap + buttonWidth > availableWidth)) {
           const removedItem = row2.pop();
           const widthToRemove = removedItem._width + (row2.length > 0 ? itemGap : 0);
@@ -192,6 +182,13 @@ export default function Home() {
     };
   }, []);
 
+  // --- 视频错误自动修复 ---
+  const handleVideoError = () => {
+    // 只要视频加载失败 (比如还没上传)，立刻切回 cat
+    console.warn(`Video ${bgName} failed, reverting to cat.`);
+    setBgName('cat');
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -206,7 +203,6 @@ export default function Home() {
   return (
     <main className="relative w-full h-screen overflow-hidden text-white font-sans">
       
-      {/* 滚动条样式 */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -218,12 +214,15 @@ export default function Home() {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.4); }
       `}</style>
 
-      {/* 静态图 & 视频 */}
-      <img src={`/background/${bgName}.jpg`} alt="Background" className="absolute top-0 left-0 w-full h-full object-cover z-0" />
+      {/* 静态图：如果视频失败，onError 会切回 cat.jpg，保证不白屏 */}
+      <img src={`/background/${bgName}.jpg`} onError={(e) => e.currentTarget.src='/background/cat.jpg'} alt="Background" className="absolute top-0 left-0 w-full h-full object-cover z-0" />
+      
       {startLoadVideo && (
         <video
           autoPlay loop muted playsInline key={bgName} 
           onCanPlay={() => setIsVideoReady(true)}
+          // 视频文件缺失时的自动回退机制
+          onError={handleVideoError}
           className={`absolute top-0 left-0 w-full h-full object-cover z-0 transition-opacity duration-1000 ease-in-out ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
         >
           <source src={`/background/${bgName}.mp4`} type="video/mp4" />
@@ -281,6 +280,7 @@ export default function Home() {
             <div className="relative h-fit" ref={moreMenuRef}>
               <button onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)} className="text-sm sm:text-base font-bold text-white/90 tracking-wider w-10 h-9 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white hover:backdrop-blur-sm">•••</button>
 
+              {/* 下拉菜单 (内容宽度自适应) */}
               {isMoreMenuOpen && (
                 <div 
                   className="absolute bottom-28 left-1/2 -translate-x-1/2 w-56 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-80 overflow-y-auto custom-scrollbar"
@@ -289,9 +289,13 @@ export default function Home() {
                     WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 15px, black calc(100% - 15px), transparent)'
                   }}
                 >
-                   <div className="flex flex-col gap-1 py-4">
+                   {/* 
+                      修改点：flex-col items-center + 链接 w-fit
+                      让胶囊紧贴文字长度，不再是通栏长条
+                   */}
+                   <div className="flex flex-col items-center gap-1 py-4">
                      {hiddenLinks.map((link, idx) => (
-                       <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-xs sm:text-sm text-center text-white/90 font-extralight rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white">
+                       <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-xs sm:text-sm text-center text-white/90 font-extralight rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white w-fit whitespace-nowrap">
                          {link.name}
                        </a>
                      ))}
