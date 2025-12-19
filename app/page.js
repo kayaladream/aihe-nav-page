@@ -12,7 +12,9 @@ export default function Home() {
   const [links, setLinks] = useState([]);
   const [year, setYear] = useState(new Date().getFullYear());
   
-  const [bgName, setBgName] = useState('cat1');
+  // ↓↓↓ 修改点1：初始值设为 null，不设默认值，防止"闪烁"
+  const [bgName, setBgName] = useState(null);
+  
   const [engines, setEngines] = useState([]);
   const [currentEngine, setCurrentEngine] = useState({ name: '百度', url: 'https://www.baidu.com/s?wd=' });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -30,7 +32,8 @@ export default function Home() {
 
   // --- 媒体加载错误处理 ---
   const handleMediaError = () => {
-    if (bgName !== 'cat1') {
+    // 只有当已经选定了背景(不为null)且不是cat1时，才执行回退
+    if (bgName && bgName !== 'cat1') {
       console.log(`背景 ${bgName} 加载失败，回退到默认背景`);
       setBgName('cat1');
       setIsBgResolved(true); 
@@ -55,9 +58,12 @@ export default function Home() {
       }
     }
     
+    // ↓↓↓ 修改点2：直接设置随机值，没有任何中间状态
     if (bgList.length > 0) {
       const randomBg = bgList[Math.floor(Math.random() * bgList.length)];
       setBgName(randomBg);
+    } else {
+      setBgName('cat1'); // 保底
     }
     setIsBgResolved(true);
 
@@ -218,22 +224,26 @@ export default function Home() {
       `}</style>
 
       {/* 
-         静态图 & 视频 (改为 object-cover)
-         这会保持 16:9 比例，不变形。
-         在宽屏电脑上，它会自动铺满宽度，只裁剪上下溢出的部分，符合你的要求。
+         静态图优化：
+         修改点3：{bgName && ...}
+         只有当 bgName 有值了(也就是算好随机数了)，才开始渲染 img 标签。
+         这样保证了浏览器发出的第一个图片请求就是正确的那个，避免先加载 cat1。
       */}
-      <img 
-        src={`/background/${bgName}.jpg`} 
-        alt="Background" 
-        onError={handleMediaError}
-        className={`
-          absolute top-0 left-0 w-full h-full object-cover z-0 
-          transition-opacity duration-300 
-          ${isBgResolved ? 'opacity-100' : 'opacity-0'}
-        `} 
-      />
+      {bgName && (
+        <img 
+          src={`/background/${bgName}.jpg`} 
+          alt="Background" 
+          onError={handleMediaError}
+          className={`
+            absolute top-0 left-0 w-full h-full object-cover z-0 
+            transition-opacity duration-300 
+            ${isBgResolved ? 'opacity-100' : 'opacity-0'}
+          `} 
+        />
+      )}
       
-      {startLoadVideo && (
+      {/* 视频加载逻辑保持不变，它依赖 startLoadVideo 计时器 */}
+      {startLoadVideo && bgName && (
         <video
           autoPlay loop muted playsInline key={bgName} 
           onCanPlay={() => setIsVideoReady(true)}
