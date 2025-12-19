@@ -20,6 +20,11 @@ export default function Home() {
   const [startLoadVideo, setStartLoadVideo] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
 
+  // --- 新增：背景锁定状态 ---
+  // 用于解决"先显示默认图片再闪烁变随机图片"的问题
+  // 初始为 false (隐藏图片)，等随机结果出来后变为 true (显示图片)
+  const [isBgResolved, setIsBgResolved] = useState(false);
+
   // --- 导航栏收纳逻辑 ---
   const [visibleLinks, setVisibleLinks] = useState([]); 
   const [hiddenLinks, setHiddenLinks] = useState([]);   
@@ -27,11 +32,13 @@ export default function Home() {
   const moreMenuRef = useRef(null); 
   const searchContainerRef = useRef(null);
 
-  // --- 新增：媒体加载错误处理 ---
+  // --- 媒体加载错误处理 ---
   const handleMediaError = () => {
     if (bgName !== 'cat') {
       console.log(`背景 ${bgName} 加载失败，回退到默认背景`);
       setBgName('cat');
+      // 确保回退后图片是可见的
+      setIsBgResolved(true); 
     }
   };
 
@@ -39,7 +46,7 @@ export default function Home() {
   useEffect(() => {
     setYear(new Date().getFullYear());
 
-    // 1. 背景选择
+    // 1. 背景选择 (修改：增加 setIsBgResolved)
     const envBg = process.env.NEXT_PUBLIC_BACKGROUND_LIST;
     let bgList = ['cat']; 
     if (envBg) {
@@ -52,9 +59,13 @@ export default function Home() {
         bgList = envBg.split(',').map(s => s.trim()).filter(Boolean);
       }
     }
+    
     if (bgList.length > 0) {
-      setBgName(bgList[Math.floor(Math.random() * bgList.length)]);
+      const randomBg = bgList[Math.floor(Math.random() * bgList.length)];
+      setBgName(randomBg);
     }
+    // 随机选完后，标记为"已决定"，此时图片才会显示
+    setIsBgResolved(true);
 
     // 2. 延迟加载视频
     const videoTimer = setTimeout(() => setStartLoadVideo(true), 800); 
@@ -212,8 +223,24 @@ export default function Home() {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.4); }
       `}</style>
 
-      {/* 静态图 & 视频 */}
-      <img src={`/background/${bgName}.jpg`} alt="Background" className="absolute top-0 left-0 w-full h-full object-cover z-0" onError={handleMediaError} />
+      {/* 
+         静态图优化：
+         添加了 transition-opacity 和 isBgResolved 逻辑。
+         初始状态下 opacity-0 (看不见)，只有当 useEffect 随机选好背景后，
+         isBgResolved 变为 true，图片瞬间显示 (opacity-100)。
+         这样就解决了"先闪过cat再变cat5"的问题。
+      */}
+      <img 
+        src={`/background/${bgName}.jpg`} 
+        alt="Background" 
+        onError={handleMediaError}
+        className={`
+          absolute top-0 left-0 w-full h-full object-cover z-0 
+          transition-opacity duration-300 
+          ${isBgResolved ? 'opacity-100' : 'opacity-0'}
+        `} 
+      />
+      
       {startLoadVideo && (
         <video
           autoPlay loop muted playsInline key={bgName} 
@@ -278,7 +305,7 @@ export default function Home() {
 
               {isMoreMenuOpen && (
                 <div 
-                  className="absolute bottom-24 left-1/2 -translate-x-1/2 w-56 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-80 overflow-y-auto custom-scrollbar"
+                  className="absolute bottom-28 left-1/2 -translate-x-1/2 w-56 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-80 overflow-y-auto custom-scrollbar"
                   style={{
                     maskImage: 'linear-gradient(to bottom, transparent, black 15px, black calc(100% - 15px), transparent)',
                     WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 15px, black calc(100% - 15px), transparent)'
@@ -286,10 +313,7 @@ export default function Home() {
                 >
                    <div className="flex flex-col gap-1 py-4">
                      {hiddenLinks.map((link, idx) => (
-                       <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" 
-                          // ↓↓↓ 修改这里：将 block 改为 w-fit mx-auto
-                          className="w-fit mx-auto px-4 py-2 text-xs sm:text-sm text-center text-white/90 font-extralight rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white"
-                       >
+                       <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="w-fit mx-auto px-4 py-2 text-xs sm:text-sm text-center text-white/90 font-extralight rounded-full transition-all duration-200 hover:bg-white/20 hover:text-white">
                          {link.name}
                        </a>
                      ))}
